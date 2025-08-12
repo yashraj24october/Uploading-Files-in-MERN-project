@@ -37,6 +37,53 @@ router.post("/create", upload.single("image"), async (req, res) => {
   }
 });
 
+<h3>Uploading  Multiple Files</h3>
 
+// Ensure 'uploads' folder exists
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("✅ 'uploads' folder created.");
+}
 
-```
+// Multer storage setup
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
+    cb(null, uniqueName);
+  },
+});
+
+// Multer instance for multiple files
+const upload = multer({ storage });
+
+// Example POST API with multiple files
+app.post("/create-post", upload.array("images", 5), (req, res) => {
+  try {
+    const { title, description } = req.body;
+    const uploadedFiles = req.files.map(file => ({
+      filename: file.filename,
+      path: `/uploads/${file.filename}`,
+    }));
+
+    // Store post in DB
+    const newPost = {
+      title,
+      description,
+      images: uploadedFiles,
+    };
+
+    // Example: Save to MongoDB (pseudo)
+    // await PostModel.create(newPost);
+
+    res.json({
+      message: "Post created successfully!",
+      post: newPost,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
